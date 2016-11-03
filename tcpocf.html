@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Draw Features</title>
+    <link rel="stylesheet" href="https://openlayers.org/en/v3.19.1/css/ol.css" type="text/css">
+    <!-- The line below is only needed for old environments like Internet Explorer and Android 4.x -->
+<!--    <script src="https://cdn.polyfill.io/v2/polyfill.min.js?features=requestAnimationFrame,Element.prototype.classList,URL"></script>!-->
+    <script src="https://openlayers.org/en/v3.19.1/build/ol.js"></script>
+    <style>
+        .map {
+            height: 400px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+<div id="map" class="map"></div>
+<form class="form-inline">
+    Cliquer sur la carte pour sélectionner les villes.
+
+    <button onclick="commencer_simulation(event)">Commencer la simulation</button>
+</form>
+<script>
+    var raster = new ol.layer.Tile({
+        source: new ol.source.OSM()
+    });
+
+    var source = new ol.source.Vector({wrapX: false});
+
+    var vector = new ol.layer.Vector({
+        source: source
+    });
+
+    var map = new ol.Map({
+        layers: [raster, vector],
+        target: 'map',
+        view: new ol.View({
+            center: ol.proj.fromLonLat([5.72 , 45.2]),
+            zoom: 4
+        })
+    });
+
+  //  devient false quand on commence à générer le graphe, l'utilisateur arrete ainsi de dessiner sur la carte
+    var ajoutPoint = true;
+
+    // l'utilisateur dessine sur la carte
+    var draw; // global pour qu'on puisse l'enlever plus tard
+    function addInteraction() {
+        var value = 'Point';
+        if (ajoutPoint) {
+            draw = new ol.interaction.Draw({
+                source: source,
+                type: /** @type {ol.geom.GeometryType} */ ('Point')
+            });
+            map.addInteraction(draw);
+        }
+    }
+
+
+    /**
+     * Handle change event.
+     */
+ /*   typeSelect.onchange = function() {
+        map.removeInteraction(draw);
+        addInteraction();
+    };
+*/
+
+
+    function commencer_simulation(event){
+        // évite le rechargement de la carte
+        event.preventDefault();
+        // le tableau des points que l'utilisateur à dessiner
+        var tabPoint = source.getFeatures();
+        // on vérifie que l'utilisateur a bien saisi au moins 3 villes
+        if (tabPoint.length < 3){
+            alert("Il faut au moins 3 villes! ");
+            return true;
+        }
+        // bloque l'ajout de point par l'utilisateur
+        ajoutPoint = false;
+
+        // structure chemin contient les infos sur les chemins, la distance et la phéromone
+        var structureChemin = new Array();
+        for(var i = 0 ; i < tabPoint.length ; i++){
+            structureChemin[i] = new Array();
+        }
+
+        // initialisation de la structure des chemins
+        for (var i = 0 ; i < tabPoint.length ; i++ ){
+            for (var j = 0 ; j < tabPoint.length ; j++ ){
+                if (i !== j ){
+                    // récupération des coordonnées du point a et du point b
+                    var coordA = tabPoint[i].getGeometry().getCoordinates();
+                    var coordB = tabPoint[j].getGeometry().getCoordinates();
+
+                    // création des chemins sur la carte
+                    var linestring_feature = new ol.Feature({
+                        geometry: new ol.geom.LineString(
+                                [coordA, coordB]
+                        )
+                    });
+                    // affichage des chemins
+                    source.addFeature(linestring_feature);
+
+                    // calcul de la distance, nous obtenons les distences précis au mm près
+                    var distance =  Math.sqrt( Math.pow(coordB[0]-coordA[0], 2 ) + Math.pow(coordB[1]-coordA[1], 2 ) );
+                    // on simplifie la distance au km près pour simplifier les calculs
+                    distance = ~~(distance / 1000);
+                    //pour afficher les distances entre les villes en km décommenter la ligne
+                    //console.log(distance);
+                    structureChemin[i][j] = { phermonone : 1,
+                                              distance : distance
+                    };
+                }
+                else{
+                    structureChemin[i][j] = {};
+                }
+            }
+        }
+
+
+        console.log(structureChemin);
+
+    }
+
+    // fin simulation
+
+
+    addInteraction();
+
+/*    var linestring_feature = new ol.Feature({
+        geometry: new ol.geom.LineString(
+                [[2427208.43788949, 5878093.149904055], [1174864.16646516, 6797783.474231295], [30, 20]]
+        )
+    });
+*/
+  //  source.addFeature(linestring_feature);
+
+
+
+</script>
+</body>
+</html>
