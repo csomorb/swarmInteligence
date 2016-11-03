@@ -19,6 +19,22 @@
     Cliquer sur la carte pour sélectionner les villes.
 
     <button onclick="commencer_simulation(event)">Commencer la simulation</button>
+
+    <label for="nbFourmi">Nombre de fourmis</label>
+    <input type="number" value="50" id="nbFourmi">
+
+    <label for="nbIter">Nombre d'itération</label>
+    <input type="number" value="1" id="nbIter">
+
+    <label for="alpha">Alpha</label>
+    <input type="number" value="1" id="alpha">
+
+    <label for="beta">Beta</label>
+    <input type="number" value="1" id="beta">
+
+    <label for="evapPheromone">Taux d'évaporation du phéromone</label>
+    <input type="number" value="1" id="evapPheromone">
+
 </form>
 <script>
     var raster = new ol.layer.Tile({
@@ -72,23 +88,24 @@
         event.preventDefault();
         // le tableau des points que l'utilisateur à dessiner
         var tabPoint = source.getFeatures();
+        var nbVilles = tabPoint.length;
         // on vérifie que l'utilisateur a bien saisi au moins 3 villes
-        if (tabPoint.length < 3){
+        if (nbVilles < 3){
             alert("Il faut au moins 3 villes! ");
-            return true;
+            return false;
         }
         // bloque l'ajout de point par l'utilisateur
         ajoutPoint = false;
 
         // structure chemin contient les infos sur les chemins, la distance et la phéromone
         var structureChemin = new Array();
-        for(var i = 0 ; i < tabPoint.length ; i++){
+        for(var i = 0 ; i < nbVilles ; i++){
             structureChemin[i] = new Array();
         }
 
         // initialisation de la structure des chemins
-        for (var i = 0 ; i < tabPoint.length ; i++ ){
-            for (var j = 0 ; j < tabPoint.length ; j++ ){
+        for (var i = 0 ; i < nbVilles ; i++ ){
+            for (var j = 0 ; j < nbVilles ; j++ ){
                 if (i !== j ){
                     // récupération des coordonnées du point a et du point b
                     var coordA = tabPoint[i].getGeometry().getCoordinates();
@@ -118,9 +135,123 @@
                 }
             }
         }
+        // mise en place des fourmis
+        var nbFourmi = parseInt(document.getElementById("nbFourmi").value);
+        if (nbFourmi < 1 ){
+            alert("Il doit y avoire au moins une fourmie");
+            return false;
+        }
+        var structureFourmi = new Array();
+        // compteur pour répartir les villes
+        var compteur = 0;
 
 
+        for (var i = 0 ; i < nbFourmi ; i++){
+
+            var listeTabou = new Array(nbVilles);
+            listeTabou.fill(false);
+
+            structureFourmi.push({ villeActuelle : compteur,
+                                   listeTabou : listeTabou,
+                                   longueurItineraire : 0,
+                                   villeDepart : compteur,
+                                   memoire : [compteur]             // pour mémoriser le chemin parcouru
+            });
+            // ajout de la ville actuelle dans la liste tabou
+            structureFourmi[i].listeTabou[compteur] = true;
+            compteur++;
+            if (compteur % tabPoint.length === 0 )
+                compteur = 0;
+        }
+        // Pour afficher la structure des chemins et des fourmis décommenter les lignes
         console.log(structureChemin);
+        console.log(structureFourmi);
+        // Pour supprimer le draw de la carte, permet d'éviter les bugs
+        map.removeInteraction(draw);
+
+        /*************Cycle fourmi********************************/
+        // récupération du nombre d'itération
+        var nbIter = parseInt(document.getElementById("nbIter").value);
+        // récupération d'alpha
+        var alpha = document.getElementById("alpha").value;
+        // récupération de beta
+        var beta = document.getElementById("beta").value;
+        // pour chaque itération
+        for( var i = 0 ; i < nbIter ; i++){
+            // pour chaque fourmi
+            for( var j = 0 ; j < nbFourmi ; j++ ){
+                // tant que toutes les villes n'ont pas été visités
+                while (structureFourmi[j].listeTabou.some(function(e,i,t){ return e === false }) ) {
+                    console.log(structureFourmi[j].listeTabou);
+                    // déterminer statistiquement le chemin à suivre
+                    // détermination des villes qui ne sont pas dans le tabou et calculer leurs intensité et leur visibilité
+                    var tableauProba = new Array(nbVilles);
+                    tableauProba.fill(0);
+                    for (var k = 0 ; k < nbVilles ; k++ ){
+                        // si la ville n'est pas tabou
+                        if ( ! structureFourmi[j].listeTabou[k] && structureFourmi[j].villeActuelle !== k){
+                            // calcul de la proba
+                            tableauProba[k] = Math.pow(structureChemin[structureFourmi[j].villeActuelle][k].phermonone, alpha ) * Math.pow(1/structureChemin[structureFourmi[j].villeActuelle][k].distance, beta );
+                        }
+                    }
+                    // calcule de la somme des probas
+                    //var sommeProba = tableauProba.reduce(function(a,b){ return a + b }, 0);
+                    // pour rechercher la ville de proba max, il suffit de retourner le maimumdu tableau
+                    var indexProbaMax = indexOfMax(tableauProba);
+                    console.log(tableauProba);
+                    console.log(indexProbaMax);
+
+                    // incrémenter la longueur de l'itinéraire
+                    structureFourmi[j].longueurItineraire += structureChemin[structureFourmi[j].villeActuelle][indexProbaMax].distance;
+
+                    // placer la ville actuelle dans la liste tabou et se déplacer sur la ville suivante
+                    //structureFourmi[j].listeTabou[structureFourmi[j].villeActuelle] = true;
+                    structureFourmi[j].listeTabou[indexProbaMax] = true;
+                    structureFourmi[j].villeActuelle = indexProbaMax;
+                    structureFourmi[j].memoire.push(indexProbaMax);
+                    console.log(structureFourmi[j].longueurItineraire);
+                }
+                // si toutes les villes ont été visités on retourne au point de départ, on incrémente la longueur de l'itinéraire
+                structureFourmi[j].longueurItineraire += structureChemin[structureFourmi[j].villeActuelle][structureFourmi[j].villeDepart].distance;
+                console.log(structureFourmi[j].longueurItineraire);
+
+                // effacer le tabou
+            /*    structureFourmi[j].listeTabou.fill(false);
+                structureFourmi[j].listeTabou[structureFourmi[j].villeDepart] = true;
+            */
+            }
+
+            /*************************Mise à jour du phéromone**************************/
+            // on diminue la phéromone
+            var evapPheromone = document.getElementById("evapPheromone").value;
+            for (var j = 0 ; j < nbVilles ; j++){
+                for (var k = 0 ; k < nbVilles ; k++){
+                    if ( k !== j){
+                        structureChemin[j][k].phermonone = structureChemin[j][k].phermonone * evapPheromone;
+                    }
+                }
+            }
+            // on ajoute la phéromone que chaque fourmie a laisé
+            
+
+            console.log(structureChemin);
+
+
+
+
+            // on remet à 0 la mémoire des fourmis
+            structureFourmi.forEach(function(f){
+                f.listeTabou.fill(false);
+                f.listeTabou[f.villeDepart] = true;
+                f.memoire = [f.villeDepart];
+                f.villeActuelle = f.villeDepart;
+                f.longueurItineraire = 0;
+            });
+            console.log("-------------------------------");
+
+        }
+
+
 
     }
 
@@ -137,6 +268,24 @@
 */
   //  source.addFeature(linestring_feature);
 
+    // fonction qui renvoie l'inde du maimum du tableau
+    function indexOfMax(arr) {
+        if (arr.length === 0) {
+            return -1;
+        }
+
+        var max = arr[0];
+        var maxIndex = 0;
+
+        for (var i = 1; i < arr.length; i++) {
+            if (arr[i] > max) {
+                maxIndex = i;
+                max = arr[i];
+            }
+        }
+
+        return maxIndex;
+    }
 
 
 </script>
