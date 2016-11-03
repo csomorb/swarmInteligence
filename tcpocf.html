@@ -1,7 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Draw Features</title>
+    <title>Voyageur de Commerce</title>
+    <meta charset="utf-8">
+    <meta name="author" content="Barnabas Csomor">
+    <link type="text/css" rel="stylesheet" href="css/materialize.min.css"  media="screen,projection"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link rel="stylesheet" href="https://openlayers.org/en/v3.19.1/css/ol.css" type="text/css">
     <!-- The line below is only needed for old environments like Internet Explorer and Android 4.x -->
 <!--    <script src="https://cdn.polyfill.io/v2/polyfill.min.js?features=requestAnimationFrame,Element.prototype.classList,URL"></script>!-->
@@ -14,28 +18,55 @@
     </style>
 </head>
 <body>
-<div id="map" class="map"></div>
-<form class="form-inline">
-    Cliquer sur la carte pour sélectionner les villes.
+    <div class="row">
+        <div class="col s12 m3 l3">
+            <div class="card-panel">
+                <div class="row">
+                    <div class="input-field col s12">
+                        <input id="nbFourmi" type="number" class="validate" value="15">
+                        <label for="nbFourmi">Nombre de fourmis</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12">
+                        <input id="nbIter" type="number" class="validate" value="5">
+                        <label for="nbIter">Nombre d'itérations</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12">
+                        <input id="alpha" type="number" class="validate" value="1">
+                        <label for="alpha">Alpha</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12">
+                        <input id="beta" type="number" class="validate" value="1">
+                        <label for="beta">Beta</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12">
+                        <input id="evapPheromone" type="number" class="validate" value="0.8">
+                        <label for="evapPheromone">Taux d'évaporation du phéromone</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12">
+                        <input id="chiffreQ" type="number" class="validate" value="1000">
+                        <label for="chiffreQ">ChiffreQ</label>
+                    </div>
+                </div>
+                <a class="waves-effect waves-light btn" onclick="commencer_simulation(event)">Déployer les fourmis</a>
+            </div>
+        </div>
+        <div class="col s12 m9 l9">
+            <div id="map" class="map"></div>
+            <p id="texto">Cliquer sur la carte pour sélectionner les villes.</p>
+        </div>
 
-    <button onclick="commencer_simulation(event)">Commencer la simulation</button>
+    </div>
 
-    <label for="nbFourmi">Nombre de fourmis</label>
-    <input type="number" value="50" id="nbFourmi">
-
-    <label for="nbIter">Nombre d'itération</label>
-    <input type="number" value="1" id="nbIter">
-
-    <label for="alpha">Alpha</label>
-    <input type="number" value="1" id="alpha">
-
-    <label for="beta">Beta</label>
-    <input type="number" value="1" id="beta">
-
-    <label for="evapPheromone">Taux d'évaporation du phéromone</label>
-    <input type="number" value="1" id="evapPheromone">
-
-</form>
 <script>
     var raster = new ol.layer.Tile({
         source: new ol.source.OSM()
@@ -89,6 +120,10 @@
         // le tableau des points que l'utilisateur à dessiner
         var tabPoint = source.getFeatures();
         var nbVilles = tabPoint.length;
+
+        // pour retenir le chemin optimal
+        var distanceMin = Number.MAX_SAFE_INTEGER;
+        var cheminMin = [];
         // on vérifie que l'utilisateur a bien saisi au moins 3 villes
         if (nbVilles < 3){
             alert("Il faut au moins 3 villes! ");
@@ -125,16 +160,19 @@
                     // on simplifie la distance au km près pour simplifier les calculs
                     distance = ~~(distance / 1000);
                     //pour afficher les distances entre les villes en km décommenter la ligne
-                    //console.log(distance);
-                    structureChemin[i][j] = { phermonone : 1,
-                                              distance : distance
-                    };
+                 //   console.log(distance);
+                    structureChemin[i][j] = {pheromone : 1,
+                        distance : distance};
                 }
                 else{
                     structureChemin[i][j] = {};
                 }
             }
         }
+
+        //console.log("-------------------");
+        //console.log(structureChemin);
+
         // mise en place des fourmis
         var nbFourmi = parseInt(document.getElementById("nbFourmi").value);
         if (nbFourmi < 1 ){
@@ -164,8 +202,8 @@
                 compteur = 0;
         }
         // Pour afficher la structure des chemins et des fourmis décommenter les lignes
-        console.log(structureChemin);
-        console.log(structureFourmi);
+
+        //console.log(structureFourmi);
         // Pour supprimer le draw de la carte, permet d'éviter les bugs
         map.removeInteraction(draw);
 
@@ -182,7 +220,7 @@
             for( var j = 0 ; j < nbFourmi ; j++ ){
                 // tant que toutes les villes n'ont pas été visités
                 while (structureFourmi[j].listeTabou.some(function(e,i,t){ return e === false }) ) {
-                    console.log(structureFourmi[j].listeTabou);
+                    //console.log(structureFourmi[j].listeTabou);
                     // déterminer statistiquement le chemin à suivre
                     // détermination des villes qui ne sont pas dans le tabou et calculer leurs intensité et leur visibilité
                     var tableauProba = new Array(nbVilles);
@@ -191,15 +229,15 @@
                         // si la ville n'est pas tabou
                         if ( ! structureFourmi[j].listeTabou[k] && structureFourmi[j].villeActuelle !== k){
                             // calcul de la proba
-                            tableauProba[k] = Math.pow(structureChemin[structureFourmi[j].villeActuelle][k].phermonone, alpha ) * Math.pow(1/structureChemin[structureFourmi[j].villeActuelle][k].distance, beta );
+                            tableauProba[k] = Math.pow(structureChemin[structureFourmi[j].villeActuelle][k].pheromone, alpha ) * Math.pow(1/structureChemin[structureFourmi[j].villeActuelle][k].distance, beta );
                         }
                     }
                     // calcule de la somme des probas
                     //var sommeProba = tableauProba.reduce(function(a,b){ return a + b }, 0);
                     // pour rechercher la ville de proba max, il suffit de retourner le maimumdu tableau
                     var indexProbaMax = indexOfMax(tableauProba);
-                    console.log(tableauProba);
-                    console.log(indexProbaMax);
+                   // console.log(tableauProba);
+                   // console.log(indexProbaMax);
 
                     // incrémenter la longueur de l'itinéraire
                     structureFourmi[j].longueurItineraire += structureChemin[structureFourmi[j].villeActuelle][indexProbaMax].distance;
@@ -209,16 +247,10 @@
                     structureFourmi[j].listeTabou[indexProbaMax] = true;
                     structureFourmi[j].villeActuelle = indexProbaMax;
                     structureFourmi[j].memoire.push(indexProbaMax);
-                    console.log(structureFourmi[j].longueurItineraire);
+                    //console.log(structureFourmi[j].longueurItineraire);
                 }
                 // si toutes les villes ont été visités on retourne au point de départ, on incrémente la longueur de l'itinéraire
                 structureFourmi[j].longueurItineraire += structureChemin[structureFourmi[j].villeActuelle][structureFourmi[j].villeDepart].distance;
-                console.log(structureFourmi[j].longueurItineraire);
-
-                // effacer le tabou
-            /*    structureFourmi[j].listeTabou.fill(false);
-                structureFourmi[j].listeTabou[structureFourmi[j].villeDepart] = true;
-            */
             }
 
             /*************************Mise à jour du phéromone**************************/
@@ -227,17 +259,29 @@
             for (var j = 0 ; j < nbVilles ; j++){
                 for (var k = 0 ; k < nbVilles ; k++){
                     if ( k !== j){
-                        structureChemin[j][k].phermonone = structureChemin[j][k].phermonone * evapPheromone;
+                        structureChemin[j][k].pheromone = structureChemin[j][k].pheromone * evapPheromone;
                     }
                 }
             }
             // on ajoute la phéromone que chaque fourmie a laisé
-            
+            var chiffreQ = document.getElementById("chiffreQ").value ;
 
-            console.log(structureChemin);
+            structureFourmi.forEach( function(f){
+                // parcours de la mémoire
+                for (var j = 0 ; j < nbVilles-1 ; j++){
+                    structureChemin[f.memoire[j]][f.memoire[j+1]].pheromone += chiffreQ / f.longueurItineraire;
+                    structureChemin[f.memoire[j+1]][f.memoire[j]].pheromone += chiffreQ / f.longueurItineraire;
+                }
+                // le dernier et le premier
+                structureChemin[f.memoire[f.memoire.length-1]][f.memoire[0]].pheromone += chiffreQ / f.longueurItineraire;
+                structureChemin[f.memoire[0]][f.memoire[f.memoire.length-1]].pheromone += chiffreQ / f.longueurItineraire;
 
-
-
+                // si une fourmi a fait un meilleur score on garde sa mémoire
+                if(f.longueurItineraire < distanceMin){
+                    distanceMin = f.longueurItineraire;
+                    cheminMin = f.memoire;
+                }
+            });
 
             // on remet à 0 la mémoire des fourmis
             structureFourmi.forEach(function(f){
@@ -247,10 +291,48 @@
                 f.villeActuelle = f.villeDepart;
                 f.longueurItineraire = 0;
             });
-            console.log("-------------------------------");
-
         }
 
+        console.log("le chemin minaml mesure : "+ distanceMin);
+        console.log(cheminMin);
+
+        document.getElementById("texto").innerHTML = "Le chemin de longueur minimal trouvé par les fourmis est de " + distanceMin + " km. <br/>" ;
+
+
+        /*Dessiner le chemin minimal en rouge*/
+        for (var i = 0 ; i < cheminMin.length-1 ; i++){
+            var coordA = tabPoint[i].getGeometry().getCoordinates();
+            var coordB = tabPoint[i+1].getGeometry().getCoordinates();
+            var linestring_feature = new ol.Feature({
+                geometry: new ol.geom.LineString(
+                        [coordA, coordB]
+                )
+            });
+            var monstyle = new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'red',
+                    width: 5
+                })
+            })
+            linestring_feature.setStyle(monstyle);
+            source.addFeature(linestring_feature);
+        }
+
+        var coordA = tabPoint[0].getGeometry().getCoordinates();
+        var coordB = tabPoint[tabPoint.length-1].getGeometry().getCoordinates();
+        var linestring_feature = new ol.Feature({
+            geometry: new ol.geom.LineString(
+                    [coordA, coordB]
+            )
+        });
+        var monstyle = new ol.style.Style({
+            stroke: new ol.style.Stroke({
+                color: 'red',
+                width: 5
+            })
+        });
+        linestring_feature.setStyle(monstyle);
+        source.addFeature(linestring_feature);
 
 
     }
@@ -259,14 +341,6 @@
 
 
     addInteraction();
-
-/*    var linestring_feature = new ol.Feature({
-        geometry: new ol.geom.LineString(
-                [[2427208.43788949, 5878093.149904055], [1174864.16646516, 6797783.474231295], [30, 20]]
-        )
-    });
-*/
-  //  source.addFeature(linestring_feature);
 
     // fonction qui renvoie l'inde du maimum du tableau
     function indexOfMax(arr) {
@@ -289,5 +363,8 @@
 
 
 </script>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script type="text/javascript" src="js/materialize.min.js"></script>
+
 </body>
 </html>
