@@ -1,0 +1,17 @@
+ center: ol.proj.fromLonLat([5.72 , 45.2]),
+
+
+ var a  = soucre.getFeatures  => tableau des points
+
+ a[0].getGeometry().getCordinates() => renvoie les cordonnées
+
+
+1) dessiner tous les points,
+
+
+2) finir le dessin
+
+3) relier tous les points, construire la data, prendre les distances
+
+4)
+

@@ -204,9 +204,11 @@
             });
             // ajout de la ville actuelle dans la liste tabou
             structureFourmi[i].listeTabou[compteur] = true;
-            compteur++;
-            if (compteur % tabPoint.length === 0 )
-                compteur = 0;
+            // décomenter pour avoir au moins une fourmie sur chaque ville
+           /* if (compteur < tabPoint.length -1)
+                compteur++;
+            else*/
+                compteur = getRandomInt(0 , tabPoint.length);
         }
         // Pour afficher la structure des chemins et des fourmis décommenter les lignes
 
@@ -412,6 +414,16 @@
         }
 
         return maxIndex;
+    }
+
+    // On renvoie un entier aléatoire entre une valeur min (incluse)
+    // et une valeur max (exclue).
+    // Attention : si on utilisait Math.round(), on aurait une distribution
+    // non uniforme !
+    function getRandomInt(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min)) + min;
     }
 
 
