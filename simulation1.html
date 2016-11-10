@@ -84,19 +84,19 @@
     function commencerSimulation(){
         /*********************** DEBUT Génération du graphe **********************************/
         /*
-        graphe
-          -> node : tableau des noeuds du graphe
-             -> id : id pour représenter le noeud
-             -> group : couleur du noeud
-             -> nbfourmip : le nombre de fourmi Partant du nid vers la nourriture
-             -> nbfourmir : le nombre de fourmi Rentrant de la nourriture vers le nid
-             -> pheromone :  la quantité de phéromone, la quantité minimale est 1
-             -> tmp : utilisé lors du mouvement des fourmis
-          -> link : tableau des liens du graphe
-             -> source : la source de l'arc
-             -> target : la destination de l'arc
-             -> value : utilisé pour le calcul de la largeur de l'arc, éventuellement pour faire varier les arcs en fonction de la phéromone...
-        */
+         graphe
+         -> node : tableau des noeuds du graphe
+         -> id : id pour représenter le noeud
+         -> group : couleur du noeud
+         -> nbfourmip : le nombre de fourmi Partant du nid vers la nourriture
+         -> nbfourmir : le nombre de fourmi Rentrant de la nourriture vers le nid
+         -> pheromone :  la quantité de phéromone, la quantité minimale est 1
+         -> tmp : utilisé lors du mouvement des fourmis
+         -> link : tableau des liens du graphe
+         -> source : la source de l'arc
+         -> target : la destination de l'arc
+         -> value : utilisé pour le calcul de la largeur de l'arc, éventuellement pour faire varier les arcs en fonction de la phéromone...
+         */
         //Génération du nid et de la nouriture
         graph = { nodes : [
             { id : "nid" , group : 1 , nbfourmip : parseInt(document.getElementById("nbfourmidepart").value) , nbfourmir : 0 , pheromone : 1 , tmp : 0 },
@@ -355,7 +355,7 @@
                             link.target.tmp += nb_fourmi_a_deplacer;
 
                             //supprimer les fourmis déplacé
-                           node.nbfourmip -= nb_fourmi_a_deplacer;
+                            node.nbfourmip -= nb_fourmi_a_deplacer;
                         }
                     });
                 });
@@ -393,13 +393,13 @@
                                 var pheromaxi = document.getElementById("probapheromon").checked;
                                 if (pheromaxi && link.source.pheromone / totalpheromone != 0.5) {
                                     if (link.source.pheromone / totalpheromone < 0.5) {
-                                       // on suit le chemin de phromone maimum
-                                       nb_fourmi_a_deplacer = 0;
+                                        // on suit le chemin de phromone maimum
+                                        nb_fourmi_a_deplacer = 0;
                                     }
                                 }
                                 else {
                                     nb_fourmi_a_deplacer = (node.nbfourmir * link.source.pheromone / totalpheromone >> 0);
-                                 totalpheromone -= link.source.pheromone;
+                                    totalpheromone -= link.source.pheromone;
                                 }
                                 compteur -= compteur;
                             }
@@ -431,11 +431,11 @@
             //mise à jour de l'affichage
             textfourmip.transition().text(function (d) {
                 if (d.id === "food") return d.nbfourmip;
-                    return d.nbfourmip + "p";
+                return d.nbfourmip + "p";
             });
             textfourmir.transition().text(function (d) {
                 if (d.id === "food") return "";
-                    return d.nbfourmir + "r";
+                return d.nbfourmir + "r";
             });
             textpheromone.transition().text(function (d) {
                 return d.pheromone;
